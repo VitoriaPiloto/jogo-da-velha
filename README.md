@@ -1,4 +1,7 @@
-# jogo-da-velha
+# Jogo da Véia XXX
+<p align="center">
+<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/89/Jogo_da_velha_-_tic_tac_toe.png/1210px-Jogo_da_velha_-_tic_tac_toe.png" width="140" />  
+</p>
 Criação de um jogo da velha em python usando o Tkinter
 
 ### Versionado em branches a evolução do projeto
