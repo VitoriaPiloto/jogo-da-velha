@@ -1,4 +1,5 @@
 import tkinter as tk
+import random
 from tkinter import messagebox
 
 tabuleiro = [""] * 10
@@ -19,11 +20,20 @@ def verificarVencedor():
 
 def clicarBotao(index, botao):
     global tabuleiro
+    
     if tabuleiro[index] == "":
-        jogador = "X" if tabuleiro[0] % 2 == 0 else "O"
+        jogador = "X" 
         tabuleiro[index] = jogador
-        botao.config(text=jogador)
-        tabuleiro[0] += 1
+        botao.config(text='X')
+        tabuleiro[0] += 1  
+        
+        posicaoAleatoria = random.randint(1,9)
+        
+        while tabuleiro[posicaoAleatoria] == 'X' or tabuleiro[posicaoAleatoria] == 'O':
+            posicaoAleatoria = random.randint(1,9)
+
+        btn = botoes[posicaoAleatoria-1]
+        btn.config(text = 'O')
 
         if verificarVencedor():
             messagebox.showinfo("Fim de Jogo", f"Jogador {jogador} venceu!")
