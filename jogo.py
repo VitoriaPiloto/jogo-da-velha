@@ -62,9 +62,9 @@ def jogada_aleatorio(board):
     available_moves = [(i, j) for i in range(3) for j in range(3) if board[i][j] == " "]
     return random.choice(available_moves)
 
-def jogar():
+def jogar(turnoEscolhido):
     board = [[" " for _ in range(3)] for _ in range(3)]
-    turno = "X"  # Campeão começa
+    turno = turnoEscolhido
     movimentos = 0
 
     while True:
@@ -85,8 +85,9 @@ def jogar():
 
 def jogadas_sequenciais(num_jogos):
     results = []
+    turnoEscolhido = ("Digite por quem quer começar (X para vencedor O para aleatorio)")
     for _ in range(num_jogos):
-        vencedor, movimentos = jogar()
+        vencedor, movimentos = jogar(turnoEscolhido)
         results.append([vencedor, movimentos])
 
     # Escrever resultados em CSV
