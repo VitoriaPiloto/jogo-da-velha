@@ -1,63 +1,100 @@
-import tkinter as tk
 import random
-from tkinter import messagebox
+import csv
 
-tabuleiro = [""] * 10
-tabuleiro[0] = 0 
+def imprimir_board(board):
+    for row in board:
+        print(" | ".join(row))
+        print("-" * 5)
 
-def verificarVencedor():
-    combinacoes = [
-        (1, 2, 3), (4, 5, 6), (7, 8, 9),  # Linhas
-        (1, 4, 7), (2, 5, 8), (3, 6, 9),  # Colunas
-        (1, 5, 9), (3, 5, 7)              # Diagonais
+def verificar_vencedor(board, player):
+    condicoes_vencer = [
+        [board[0][0], board[0][1], board[0][2]],
+        [board[1][0], board[1][1], board[1][2]],
+        [board[2][0], board[2][1], board[2][2]],
+        [board[0][0], board[1][0], board[2][0]],
+        [board[0][1], board[1][1], board[2][1]],
+        [board[0][2], board[1][2], board[2][2]],
+        [board[0][0], board[1][1], board[2][2]],
+        [board[2][0], board[1][1], board[0][2]]
     ]
+    return [player, player, player] in condicoes_vencer
 
-    for a, b, c in combinacoes:
-        if tabuleiro[a] == tabuleiro[b] == tabuleiro[c] and tabuleiro[a] != "":
-            return True
+def verifica_se_esta_completo_board(board):
+    return all(cell != " " for row in board for cell in row)
 
-    return False
+def jogada_campeao(board):
+    # Tentar vencer na jogada atual
+    for i in range(3):
+        for j in range(3):
+            if board[i][j] == " ":
+                board[i][j] = "X"
+                if verificar_vencedor(board, "X"):
+                    return (i, j)
+                board[i][j] = " "
 
-def clicarBotao(index, botao):
-    global tabuleiro
-    
-    if tabuleiro[index] == "":
-        jogador = "X" 
-        tabuleiro[index] = jogador
-        botao.config(text='X')
-        tabuleiro[0] += 1  
-        
-        posicaoAleatoria = random.randint(1,9)
-        
-        while tabuleiro[posicaoAleatoria] == 'X' or tabuleiro[posicaoAleatoria] == 'O':
-            posicaoAleatoria = random.randint(1,9)
+    # Bloquear o jogador aleatório (O) se ele estiver prestes a vencer
+    for i in range(3):
+        for j in range(3):
+            if board[i][j] == " ":
+                board[i][j] = "O"
+                if verificar_vencedor(board, "O"):
+                    board[i][j] = "X"
+                    return (i, j)
+                board[i][j] = " "
 
-        btn = botoes[posicaoAleatoria-1]
-        btn.config(text = 'O')
+    # Priorizar jogar no centro
+    if board[1][1] == " ":
+        return (1, 1)
 
-        if verificarVencedor():
-            messagebox.showinfo("Fim de Jogo", f"Jogador {jogador} venceu!")
-            resetarJogo()
-        elif tabuleiro[0] == 9:
-            messagebox.showinfo("Fim de Jogo", "Empate!")
-            resetarJogo()
+    # Jogar em um dos cantos, se possível
+    for i, j in [(0, 0), (0, 2), (2, 0), (2, 2)]:
+        if board[i][j] == " ":
+            return (i, j)
 
-def resetarJogo():
-    global tabuleiro
-    tabuleiro = [""] * 10
-    tabuleiro[0] = 0
-    for button in botoes:
-        button.config(text="")
+    # Jogar na primeira posição disponível
+    for i in range(3):
+        for j in range(3):
+            if board[i][j] == " ":
+                return (i, j)
 
-window = tk.Tk()
-window.title("Jogo da Velha")
 
-botoes = []
-for i in range(1, 10):
-    botao = tk.Button(window, text="", font=('normal', 40), width=5, height=2,
-                       command=lambda i=i, button=None: clicarBotao(i, botoes[i-1]))
-    botao.grid(row=(i-1)//3, column=(i-1) % 3)
-    botoes.append(botao)
+def jogada_aleatorio(board):
+    available_moves = [(i, j) for i in range(3) for j in range(3) if board[i][j] == " "]
+    return random.choice(available_moves)
 
-# Executa o loop principal da interface gráfica
-window.mainloop()
+def jogar():
+    board = [[" " for _ in range(3)] for _ in range(3)]
+    turno = "X"  # Campeão começa
+    movimentos = 0
+
+    while True:
+        if turno == "X":
+            movimento = jogada_campeao(board)
+        else:
+            movimento = jogada_aleatorio(board)
+
+        board[movimento[0]][movimento[1]] = turno
+        movimentos += 1
+
+        if verificar_vencedor(board, turno):
+            return turno, movimentos
+        if verifica_se_esta_completo_board(board):
+            return "VELHA", movimentos
+
+        turno = "O" if turno == "X" else "X"
+
+def jogadas_sequenciais(num_jogos):
+    results = []
+    for _ in range(num_jogos):
+        vencedor, movimentos = jogar()
+        results.append([vencedor, movimentos])
+
+    # Escrever resultados em CSV
+    with open("relatorio.csv", "w", newline="") as file:
+        writer = csv.writer(file)
+        writer.writerow(["vencedor", "numero jogadas"])
+        writer.writerows(results)
+
+    print(f"{num_jogos} jogos finalizados. Resultados salvos em 'relatorio.csv'.")
+
+jogadas_sequenciais(1000)
