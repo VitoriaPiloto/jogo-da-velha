@@ -1,10 +1,10 @@
-import random
 import csv
+import random
+from collections import defaultdict
 
-def imprimir_board(board):
-    for row in board:
-        print(" | ".join(row))
-        print("-" * 5)
+# Tabela de conhecimento com recompensas
+tabela_conhecimento = defaultdict(lambda: [0] * 9)
+exploration_rate = 0.5
 
 def verificar_vencedor(board, player):
     condicoes_vencer = [
@@ -22,8 +22,12 @@ def verificar_vencedor(board, player):
 def verifica_se_esta_completo_board(board):
     return all(cell != " " for row in board for cell in row)
 
+def verificar_vencedor_diagonal(board, player):
+    return ([board[0][0], board[1][1], board[2][2]] == [player, player, player] or
+            [board[2][0], board[1][1], board[0][2]] == [player, player, player])
+
 def jogada_campeao(board):
-    # Tentar vencer na jogada atual
+    # ATACAR
     for i in range(3):
         for j in range(3):
             if board[i][j] == " ":
@@ -32,7 +36,7 @@ def jogada_campeao(board):
                     return (i, j)
                 board[i][j] = " "
 
-    # Bloquear o jogador aleatório (O) se ele estiver prestes a vencer
+    # BLOQUEAR
     for i in range(3):
         for j in range(3):
             if board[i][j] == " ":
@@ -42,52 +46,93 @@ def jogada_campeao(board):
                     return (i, j)
                 board[i][j] = " "
 
-    # Priorizar jogar no centro
+    # JOGA NO CENTRO
     if board[1][1] == " ":
         return (1, 1)
 
-    # Jogar em um dos cantos, se possível
+    # CANTO
     for i, j in [(0, 0), (0, 2), (2, 0), (2, 2)]:
         if board[i][j] == " ":
             return (i, j)
 
-    # Jogar na primeira posição disponível
+    # PRIMEIRA POSIÇÃO
     for i in range(3):
         for j in range(3):
             if board[i][j] == " ":
                 return (i, j)
 
+# Converter o tabuleiro para uma representação única (string)
+def converter_tabuleiro(board):
+    return "".join("".join(row) for row in board)
 
-def jogada_aleatorio(board):
-    available_moves = [(i, j) for i in range(3) for j in range(3) if board[i][j] == " "]
-    return random.choice(available_moves)
+def jogada_aprendizado(board):
+    estado = converter_tabuleiro(board)
+    jogadas_possiveis = [(i, j) for i in range(3) for j in range(3) if board[i][j] == " "]
 
-def jogar():
-    board = [[" " for _ in range(3)] for _ in range(3)]
-    turno = "X"  # Campeão começa
-    movimentos = 0
+    if not jogadas_possiveis:
+        return None
 
-    while True:
-        if turno == "X":
-            movimento = jogada_campeao(board)
+    if random.random() < exploration_rate:
+        return random.choice(jogadas_possiveis)
+    else:
+        recompensas = [tabela_conhecimento[estado][i * 3 + j] for i, j in jogadas_possiveis]
+        
+        if recompensas:
+            melhor_jogada = jogadas_possiveis[recompensas.index(max(recompensas))]
+            return melhor_jogada
         else:
-            movimento = jogada_aleatorio(board)
+            return random.choice(jogadas_possiveis)
+
+    
+def jogar(turnoEscolhido):
+    board = [[" " for _ in range(3)] for _ in range(3)]  
+    turno = "X" if turnoEscolhido == "X" else "O"
+    vencedor = None
+    movimentos = 0
+    historico_jogadas = []
+
+    while vencedor is None and movimentos < 9: 
+        if turno == "X":  
+            movimento = jogada_campeao(board)
+        else:  
+            movimento = jogada_aprendizado(board)
+
+        if movimento is None:
+            break 
+
+        historico_jogadas.append((converter_tabuleiro(board), movimento[0] * 3 + movimento[1]))
 
         board[movimento[0]][movimento[1]] = turno
         movimentos += 1
 
         if verificar_vencedor(board, turno):
-            return turno, movimentos
-        if verifica_se_esta_completo_board(board):
-            return "VELHA", movimentos
+            vencedor = turno
+            for estado, jogada in historico_jogadas:
+                if vencedor == "O":
+                    tabela_conhecimento[estado][jogada] += 5
+                elif vencedor == "X":
+                    penalidade = 5 if verificar_vencedor_diagonal(board, "X") else 3
+                    tabela_conhecimento[estado][jogada] -= penalidade
+                else:
+                    tabela_conhecimento[estado][jogada] += 5
 
         turno = "O" if turno == "X" else "X"
 
+    if vencedor is None:
+        vencedor = "VELHA" 
+
+    return vencedor, movimentos
+
+
 def jogadas_sequenciais(num_jogos):
+    global exploration_rate
     results = []
+    turnoEscolhido = input("Digite por quem quer começar (X para vencedor O para jogador aprendizado)")
     for _ in range(num_jogos):
-        vencedor, movimentos = jogar()
+        vencedor, movimentos = jogar(turnoEscolhido)
         results.append([vencedor, movimentos])
+        if _ % 2000 == 0 and exploration_rate > 0.05:
+            exploration_rate *= 0.9 
 
     # Escrever resultados em CSV
     with open("relatorio.csv", "w", newline="") as file:
@@ -97,4 +142,4 @@ def jogadas_sequenciais(num_jogos):
 
     print(f"{num_jogos} jogos finalizados. Resultados salvos em 'relatorio.csv'.")
 
-jogadas_sequenciais(1000)
+jogadas_sequenciais(500000)
