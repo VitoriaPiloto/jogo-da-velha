@@ -22,7 +22,7 @@ def verificar_vencedor(board, player):
 def verifica_se_esta_completo_board(board):
     return all(cell != " " for row in board for cell in row)
 
-def jogada_campeao(board):
+def jogada_campeao(board, turnoEscolhido, movimentos):
     # Tentar vencer na jogada atual
     for i in range(3):
         for j in range(3):
@@ -41,6 +41,18 @@ def jogada_campeao(board):
                     board[i][j] = "X"
                     return (i, j)
                 board[i][j] = " "
+                
+    # Verificação específica para o caso do "O" tentando vencer nas diagonais
+    if movimentos == 5 and turnoEscolhido == "O":
+        # Verifica se o O está nas extremidades da diagonal (0,2) e (2,0)
+        if board[0][2] == "O" and board[2][0] == "O" and board[1][1] == " ":
+            return (1, 1)  # Bloqueia no centro da diagonal
+        # Caso "O" esteja em duas posições na diagonal (0,2) e (2,0), mas não no centro
+        if board[0][2] == "O" and board[2][0] == "O":
+            if board[1][1] == " ":
+                return (1, 1)
+        elif board[0][0] == "O" and board[2][2] == "O" and board[1][1] == " ":
+            return (1, 1)  # Bloqueia no centro da outra diagonal
 
     # Priorizar jogar no centro
     if board[1][1] == " ":
@@ -69,7 +81,7 @@ def jogar(turnoEscolhido):
 
     while True:
         if turno == "X":
-            movimento = jogada_campeao(board)
+            movimento = jogada_campeao(board, turnoEscolhido, movimentos)
         else:
             movimento = jogada_aleatorio(board)
 
@@ -77,6 +89,9 @@ def jogar(turnoEscolhido):
         movimentos += 1
 
         if verificar_vencedor(board, turno):
+            if (turno == "O"):
+                for game in board:
+                    print(game)
             return turno, movimentos
         if verifica_se_esta_completo_board(board):
             return "VELHA", movimentos
@@ -89,6 +104,8 @@ def jogadas_sequenciais(num_jogos):
     for _ in range(num_jogos):
         vencedor, movimentos = jogar(turnoEscolhido)
         results.append([vencedor, movimentos])
+        if (vencedor == "O"):
+            print("----")
 
     # Escrever resultados em CSV
     with open("relatorio.csv", "w", newline="") as file:
@@ -98,4 +115,4 @@ def jogadas_sequenciais(num_jogos):
 
     print(f"{num_jogos} jogos finalizados. Resultados salvos em 'relatorio.csv'.")
 
-jogadas_sequenciais(1000)
+jogadas_sequenciais(10000)
